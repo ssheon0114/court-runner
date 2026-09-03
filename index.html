@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Court-Runner 카카오톡 실시간 연동 데모</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800">
+
+    <!-- 시스템 헤더 -->
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                ⚖️ Court-Runner <span class="text-xs bg-yellow-500 text-black font-bold px-2 py-0.5 rounded">카톡 연동 Live</span>
+            </h1>
+            <div class="flex gap-2">
+                <button onclick="switchView('client')" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 rounded text-xs font-medium">1. 의뢰 작성</button>
+                <button onclick="switchView('admin')" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 rounded text-xs font-medium">2. 관리자 모니터</button>
+                <button onclick="switchView('runner')" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 rounded text-xs font-medium">3. 수행원 모바일</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 토큰 입력 영역 -->
+    <div class="max-w-7xl mx-auto p-4 bg-yellow-50 border-b border-yellow-200">
+        <div class="flex flex-col md:flex-row gap-3 items-center justify-between text-xs">
+            <div class="font-bold text-yellow-800">🔑 카카오 Access Token 설정 (자동 저장됨)</div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <input type="text" id="kakao-token" placeholder="발급받은 Access Token 긴 문자열 붙여넣기" class="p-2 border rounded w-full md:w-96 text-xs">
+                <button onclick="saveToken()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded font-bold whitespace-nowrap">토큰 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-6">
+
+        <!-- 1. 의뢰 작성 (Client View) -->
+        <section id="view-client" class="view-section active">
+            <div class="max-w-xl mx-auto bg-white rounded-xl shadow-md p-6 border">
+                <h2 class="text-lg font-bold text-gray-900 border-b pb-3 mb-4">📋 [로펌] 현장 수행 1분 의뢰서</h2>
+                <form onsubmit="submitRequest(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">의뢰 로펌명</label>
+                        <input type="text" id="req-lawfirm" required value="법무법인 대륜" class="w-full p-2 border rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">관할 법원</label>
+                        <select id="req-court" class="w-full p-2 border rounded text-sm">
+                            <option value="서울중앙지방법원">서울중앙지방법원</option>
+                            <option value="서울동부지방법원">서울동부지방법원</option>
+                            <option value="수원지방법원">수원지방법원</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">사건번호</label>
+                            <input type="text" id="req-case-no" required value="2026고단8812" class="w-full p-2 border rounded text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">기일 일시</label>
+                            <input type="text" id="req-datetime" value="2026-09-04 10:00" class="w-full p-2 border rounded text-sm">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-sm">⚡ 1분 의뢰 제출하기</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 2. 관리자 모니터 (Admin View) -->
+        <section id="view-admin" class="view-section">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-xl shadow-md p-5 border">
+                        <h2 class="text-base font-bold mb-4">🔔 신규 의뢰 & 매칭 현황</h2>
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-gray-100 font-bold border-b">
+                                <tr>
+                                    <th class="p-2">의뢰처 / 법원</th>
+                                    <th class="p-2">사건번호</th>
+                                    <th class="p-2">상태</th>
+                                    <th class="p-2 text-center">제어</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-task-table" class="divide-y"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-5 border">
+                        <h2 class="text-base font-bold border-b pb-3 mb-4">✅ 현장 보고 검수 및 카톡 발송</h2>
+                        <div id="admin-review-box" class="text-xs text-gray-500 text-center py-8">검수할 사건을 선택하세요.</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md p-5 border h-fit">
+                    <h2 class="text-base font-bold border-b pb-3 mb-3">🏃 수행원 현황</h2>
+                    <ul class="space-y-3 text-xs">
+                        <li class="p-2 bg-gray-50 rounded border">이수행 (서울중앙지방법원 - 대기중)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 수행원 모바일 (Runner View) -->
+        <section id="view-runner" class="view-section">
+            <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border">
+                <div class="bg-gray-900 text-white p-4">
+                    <p class="text-xs text-gray-400">현장 수행원 전용 모바일웹</p>
+                    <h2 class="font-bold text-sm">수행원: 이수행 (서울중앙)</h2>
+                </div>
+                <div class="p-4 space-y-4" id="runner-task-container"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const TARGET_URL = 'https://ssheon0114.github.io/court-runner/index.html';
+
+        let accessToken = localStorage.getItem('kakao_access_token') || '';
+        if(accessToken) {
+            document.getElementById('kakao-token').value = accessToken;
+        }
+
+        function saveToken() {
+            accessToken = document.getElementById('kakao-token').value.trim();
+            if(!accessToken) {
+                alert("토큰을 입력해 주세요.");
+                return;
+            }
+            localStorage.setItem('kakao_access_token', accessToken);
+            alert("카카오 Access Token이 성공적으로 저장되었습니다!");
+        }
+
+        let db = { tasks: [] };
+
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
+            renderSystem();
+        }
+
+        function submitRequest(e) {
+            e.preventDefault();
+            const newTask = {
+                id: "TK-" + Math.floor(1000 + Math.random() * 9000),
+                lawfirm: document.getElementById('req-lawfirm').value,
+                court: document.getElementById('req-court').value,
+                caseNo: document.getElementById('req-case-no').value,
+                datetime: document.getElementById('req-datetime').value,
+                status: "대기중",
+                runnerId: null,
+                resultText: ""
+            };
+            db.tasks.unshift(newTask);
+            switchView('admin');
+        }
+
+        function autoAssign(taskId) {
+            const task = db.tasks.find(t => t.id === taskId);
+            task.runnerId = "R1";
+            task.status = "배정완료";
+            renderSystem();
+        }
+
+        function submitRunnerResult(taskId) {
+            const task = db.tasks.find(t => t.id === taskId);
+            const resultText = document.getElementById(`runner-result-${taskId}`).value;
+            if(!resultText) return alert("선고 결과를 입력해 주세요.");
+            task.resultText = resultText;
+            task.status = "현장보고완료";
+            renderSystem();
+        }
+
+        function sendKakaoMessage(task) {
+            if (!accessToken) {
+                alert("상단 노란색 입력란에 카카오 Access Token을 입력하고 [토큰 저장]을 눌러주세요.");
+                return;
+            }
+
+            // 도메인 제약 없이 하단 전체 버튼을 생성하는 button_title 방식 적용
+            const messageData = {
+                object_type: 'feed',
+                content: {
+                    title: `[Court-Runner] 현장 보고서 완료`,
+                    description: `• 의뢰처: ${task.lawfirm}\n• 사건번호: ${task.caseNo}\n• 관할: ${task.court}\n\n⚖️ 선고 결과:\n"${task.resultText}"`,
+                    image_url: 'https://via.placeholder.com/600x300/1e1b4b/ffffff?text=Court-Runner+Report',
+                    link: { web_url: TARGET_URL, mobile_web_url: TARGET_URL }
+                },
+                button_title: '📄 선고 결과 보고서 확인'
+            };
+
+            const params = new URLSearchParams();
+            params.append('template_object', JSON.stringify(messageData));
+
+            fetch('https://kapi.kakao.com/v2/api/talk/memo/default/send', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.result_code === 0) {
+                    alert("📲 카카오톡으로 사건 결과 보고서가 정상 전송되었습니다!");
+                    task.status = "검수완료";
+                    renderSystem();
+                } else {
+                    alert(`발송 실패: ${data.msg}\n(토큰 만료 시 토큰을 재발급받아 저장해 주세요)`);
+                }
+            })
+            .catch(err => alert("통신 오류가 발생했습니다."));
+        }
+
+        function renderSystem() {
+            const adminTable = document.getElementById('admin-task-table');
+            adminTable.innerHTML = db.tasks.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-gray-400">등록된 의뢰가 없습니다.</td></tr>` : db.tasks.map(t => `
+                <tr>
+                    <td class="p-2"><strong>${t.court}</strong><br><span class="text-gray-400">${t.lawfirm}</span></td>
+                    <td class="p-2">${t.caseNo}</td>
+                    <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.status === '대기중' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">${t.status}</span></td>
+                    <td class="p-2 text-center">
+                        ${t.status === '대기중' ? `<button onclick="autoAssign('${t.id}')" class="bg-indigo-600 text-white px-2 py-1 rounded text-[10px]">자동매칭</button>` : ''}
+                        ${t.status === '현장보고완료' ? `<button onclick="selectReviewTask('${t.id}')" class="bg-yellow-500 text-white px-2 py-1 rounded text-[10px]">결과 검수</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+
+            const runnerContainer = document.getElementById('runner-task-container');
+            const myTasks = db.tasks.filter(t => t.runnerId === "R1");
+            runnerContainer.innerHTML = myTasks.length === 0 ? `<div class="text-center py-6 text-xs text-gray-400">배정된 사건이 없습니다.</div>` : myTasks.map(t => `
+                <div class="border rounded p-3 text-xs space-y-2">
+                    <div class="font-bold text-indigo-700">${t.court} (${t.caseNo})</div>
+                    ${t.status === '배정완료' ? `
+                        <input type="text" id="runner-result-${t.id}" placeholder="선고 결과 입력 (예: 피고인 벌금 300만원)" class="w-full p-2 border rounded">
+                        <button onclick="submitRunnerResult('${t.id}')" class="w-full bg-green-600 text-white py-1.5 rounded font-bold">현장 보고 제출</button>
+                    ` : `<div class="text-green-600 font-bold">보고 완료: ${t.resultText}</div>`}
+                </div>
+            `).join('');
+        }
+
+        function selectReviewTask(taskId) {
+            const task = db.tasks.find(t => t.id === taskId);
+            document.getElementById('admin-review-box').innerHTML = `
+                <div class="text-left space-y-2">
+                    <p><strong>사건번호:</strong> ${task.caseNo}</p>
+                    <p class="p-2 bg-yellow-50 border rounded"><strong>현장 보고 결과:</strong> ${task.resultText}</p>
+                    <button onclick="sendKakaoMessage(db.tasks.find(t => t.id === '${task.id}'))" class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 rounded shadow">
+                        🟡 검수 완료 & 내 카톡으로 보고서 전송
+                    </button>
+                </div>
+            `;
+        }
+
+        renderSystem();
+    </script>
+</body>
+</html>
