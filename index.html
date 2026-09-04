@@ -16,7 +16,7 @@
     <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <h1 class="text-xl font-bold flex items-center gap-2">
-                ⚖️ Court-Runner <span class="text-xs bg-yellow-500 text-black font-bold px-2 py-0.5 rounded">카톡 연동 Live</span>
+                ⚖️ Court-Runner <span class="text-xs bg-yellow-500 text-black font-bold px-2 py-0.5 rounded">Live Demo</span>
             </h1>
             <div class="flex gap-2">
                 <button onclick="switchView('client')" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 rounded text-xs font-medium">1. 의뢰 작성</button>
@@ -26,12 +26,12 @@
         </div>
     </header>
 
-    <!-- 토큰 입력 영역 -->
+    <!-- 토큰 설정 박스 -->
     <div id="token-box" class="max-w-7xl mx-auto p-4 bg-yellow-50 border-b border-yellow-200">
         <div class="flex flex-col md:flex-row gap-3 items-center justify-between text-xs">
-            <div class="font-bold text-yellow-800">🔑 카카오 Access Token 설정 (자동 저장됨)</div>
+            <div class="font-bold text-yellow-800">🔑 카카오 Access Token 설정 (자동 저장)</div>
             <div class="flex gap-2 w-full md:w-auto">
-                <input type="text" id="kakao-token" placeholder="발급받은 Access Token 긴 문자열 붙여넣기" class="p-2 border rounded w-full md:w-96 text-xs">
+                <input type="text" id="kakao-token" placeholder="발급받은 Access Token 입력" class="p-2 border rounded w-full md:w-96 text-xs">
                 <button onclick="saveToken()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded font-bold whitespace-nowrap">토큰 저장</button>
             </div>
         </div>
@@ -116,31 +116,26 @@
             </div>
         </section>
 
-        <!-- 4. [신규] 카톡 링크 클릭 시 열리는 선고 결과 보고서 (Report View) -->
+        <!-- 4. 결과 보고서 (Report View - PC & 모바일 호환) -->
         <section id="view-report" class="view-section">
             <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-2xl border overflow-hidden">
                 <div class="bg-indigo-950 text-white p-6 text-center">
                     <div class="text-xs text-indigo-300 font-bold tracking-widest uppercase mb-1">Court-Runner Official Report</div>
                     <h2 class="text-xl font-extrabold">⚖️ 법정 현장 선고 결과 보고서</h2>
-                    <p class="text-xs text-gray-300 mt-1">발급일시: <span id="rpt-date">2026-09-04</span></p>
+                    <p class="text-xs text-gray-300 mt-1">발급일시: 2026-09-04</p>
                 </div>
                 <div class="p-6 space-y-5 text-sm">
                     <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 space-y-2 text-xs">
-                        <div class="flex justify-between"><span class="text-gray-500">의뢰 로펌:</span><span id="rpt-lawfirm" class="font-bold text-gray-900">법무법인 대륜</span></div>
-                        <div class="flex justify-between"><span class="text-gray-500">관할 법원:</span><span id="rpt-court" class="font-bold text-gray-900">서울중앙지방법원</span></div>
-                        <div class="flex justify-between"><span class="text-gray-500">사건 번호:</span><span id="rpt-caseno" class="font-bold text-indigo-700">2026고단8812</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">의뢰 로펌:</span><span id="rpt-lawfirm" class="font-bold text-gray-900">-</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">관할 법원:</span><span id="rpt-court" class="font-bold text-gray-900">-</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">사건 번호:</span><span id="rpt-caseno" class="font-bold text-indigo-700">-</span></div>
                     </div>
 
                     <div class="border-t pt-4">
                         <h3 class="text-xs font-bold text-gray-500 mb-2">📌 법정 현장 주요 선고 내용</h3>
                         <div id="rpt-result" class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-900 font-bold text-base leading-relaxed text-center">
-                            "피고인 집행유예 선고"
+                            "-"
                         </div>
-                    </div>
-
-                    <div class="border-t pt-4 text-xs text-gray-500 space-y-1">
-                        <p>• 담당 현장 수행원: 이수행 (검증완료)</p>
-                        <p>• 본 보고서는 Court-Runner 현장 실시간 매칭 시스템을 통해 공식 발급되었습니다.</p>
                     </div>
 
                     <button onclick="switchView('client')" class="w-full bg-gray-800 text-white py-3 rounded-xl font-bold text-xs hover:bg-gray-700">메인 화면으로 이동</button>
@@ -154,9 +149,7 @@
         const BASE_URL = 'https://ssheon0114.github.io/court-runner/index.html';
 
         let accessToken = localStorage.getItem('kakao_access_token') || '';
-        if(accessToken) {
-            document.getElementById('kakao-token').value = accessToken;
-        }
+        if(accessToken) document.getElementById('kakao-token').value = accessToken;
 
         function saveToken() {
             accessToken = document.getElementById('kakao-token').value.trim();
@@ -208,8 +201,8 @@
         function sendKakaoMessage(task) {
             if (!accessToken) return alert("상단에 카카오 Access Token을 입력하고 [토큰 저장]을 눌러주세요.");
 
-            // 카톡 링크 클릭 시 바로 보고서 뷰(?view=report)가 열리도록 URL 파라미터 전달
-            const reportUrl = `${BASE_URL}?view=report&lawfirm=${encodeURIComponent(task.lawfirm)}&court=${encodeURIComponent(task.court)}&caseno=${encodeURIComponent(task.caseNo)}&result=${encodeURIComponent(task.resultText)}`;
+            const desktopUrl = `${BASE_URL}?view=report&mode=desktop&lawfirm=${encodeURIComponent(task.lawfirm)}&court=${encodeURIComponent(task.court)}&caseno=${encodeURIComponent(task.caseNo)}&result=${encodeURIComponent(task.resultText)}`;
+            const mobileUrl = `${BASE_URL}?view=report&mode=mobile&lawfirm=${encodeURIComponent(task.lawfirm)}&court=${encodeURIComponent(task.court)}&caseno=${encodeURIComponent(task.caseNo)}&result=${encodeURIComponent(task.resultText)}`;
 
             const messageData = {
                 object_type: 'feed',
@@ -217,10 +210,10 @@
                     title: `[Court-Runner] 현장 보고서 완료`,
                     description: `• 의뢰처: ${task.lawfirm}\n• 사건번호: ${task.caseNo}\n• 관할: ${task.court}\n\n⚖️ 선고 결과:\n"${task.resultText}"`,
                     image_url: 'https://via.placeholder.com/600x300/1e1b4b/ffffff?text=Court-Runner+Report',
-                    link: { web_url: reportUrl, mobile_web_url: reportUrl }
+                    link: { web_url: desktopUrl, mobile_web_url: mobileUrl }
                 },
                 buttons: [
-                    { title: '📄 선고 결과 보고서 확인', link: { web_url: reportUrl, mobile_web_url: reportUrl } }
+                    { title: '📄 선고 결과 보고서 확인', link: { web_url: desktopUrl, mobile_web_url: mobileUrl } }
                 ]
             };
 
@@ -287,15 +280,17 @@
             `;
         }
 
-        // 페이지 접속 시 URL 파라미터 감지 (카톡 링크 클릭 시 작동)
+        // PC / 모바일 접속 라우팅 자동 처리
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('view') === 'report') {
-                document.getElementById('token-box').style.display = 'none';
-                document.getElementById('rpt-lawfirm').innerText = urlParams.get('lawfirm') || '법무법인 대륜';
-                document.getElementById('rpt-court').innerText = urlParams.get('court') || '서울중앙지방법원';
-                document.getElementById('rpt-caseno').innerText = urlParams.get('caseno') || '2026고단8812';
-                document.getElementById('rpt-result').innerText = `"${urlParams.get('result') || '피고인 집행유예 선고'}"`;
+                if (urlParams.get('mode') === 'mobile' || window.innerWidth < 768) {
+                    if(document.getElementById('token-box')) document.getElementById('token-box').style.display = 'none';
+                }
+                document.getElementById('rpt-lawfirm').innerText = urlParams.get('lawfirm') || '법무법인';
+                document.getElementById('rpt-court').innerText = urlParams.get('court') || '관할 법원';
+                document.getElementById('rpt-caseno').innerText = urlParams.get('caseno') || '사건번호';
+                document.getElementById('rpt-result').innerText = `"${urlParams.get('result') || '선고 결과'}"`;
                 switchView('report');
             }
         };
